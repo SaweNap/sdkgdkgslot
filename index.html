@@ -1,125 +1,50 @@
-<!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8" />
-<title>Классическая слот-машина</title>
+<title>Игровой автомат</title>
 <style>
-  body { font-family: Arial, sans-serif; text-align: center; background:#222; color:#fff; margin:0; padding:20px; }
-  #reels { display: flex; justify-content: center; margin:20px; }
-  .reel { width:80px; height:80px; border:2px solid #fff; font-size:50px; display:flex; align-items:center; justify-content:center; margin:0 10px; }
-  #balance { font-size:20px; margin:10px; }
-  #stake { font-size:20px; }
-  #result { margin-top:20px; font-size:18px; }
-  button { padding:10px 20px; font-size:16px; margin-top:10px; }
+  /* Простая стилизация */
+  #reels { font-size: 50px; margin: 20px 0; }
+  #result { font-weight: bold; margin: 10px 0; }
 </style>
 </head>
 <body>
 
-<h1>Классическая слот-машина</h1>
-<div id="balance">Баланс: <span id="balanceValue">Loading...</span> ₽</div>
-<div>
-  <label for="stakeInput">Ставка:</label>
-  <input type="number" id="stakeInput" min="10" max="500" value="10" />
-</div>
+<h1>Игровой автомат</h1>
+<div>Баланс: <span id="balance">0</span> ₽</div>
+<div>Введите ставку (минимум 10 ₽):</div>
+<input type="number" id="stakeInput" value="10" min="10" />
+<button id="spinBtn">Крутить</button>
 <div id="reels">
-  <div class="reel" id="reel1">🍒</div>
-  <div class="reel" id="reel2">🍒</div>
-  <div class="reel" id="reel3">🍒</div>
+  <span id="reel1">🎰</span>
+  <span id="reel2">🎰</span>
+  <span id="reel3">🎰</span>
 </div>
-<button id="spinBtn">Играть</button>
 <div id="result"></div>
 
 <script>
-const symbols = ['🍒', '🍋', '🔔', '⭐', '🍀', '7️⃣'];
-let balance = 0; // Загружать из API
-let userId = null;
-
-const balanceSpan = document.getElementById('balanceValue');
+const symbols = ['🍒', '🍋', '🔔', '⭐', '🍀'];
+const balanceSpan = document.getElementById('balance');
+const reel1Span = document.getElementById('reel1');
+const reel2Span = document.getElementById('reel2');
+const reel3Span = document.getElementById('reel3');
 const resultDiv = document.getElementById('result');
 const spinBtn = document.getElementById('spinBtn');
 
 const urlParams = new URLSearchParams(window.location.search);
-userId = urlParams.get('id'); // Получаем id из URL
+const userId = urlParams.get('id') ? Number(urlParams.get('id')) : null;
 
-// Функция для получения баланса из файла
-async function getUserBalance(userId) {
-  try {
-    const response = await fetch(`https://raw.githubusercontent.com/SaweNap/dfjghdfifgJSON/main/users.json`);
-    const users = await response.json();
-    const user = users.find(u => u.id.toString() === userId);
-    return user ? user.balance : 0;
-  } catch (e) {
-    console.error('Ошибка получения баланса:', e);
-    return 0;
-  }
+// Вставьте сюда ваш GitHub токен
+const githubToken = 'ВАШ_ТОКЕН';
+
+async function fetchUsers() {
+  const response = await fetch('https://raw.githubusercontent.com/SaweNap/dfjghdfifgJSON/main/users.json');
+  const users = await response.json();
+  return users;
 }
 
-// Обновление отображения баланса
-function updateBalanceDisplay() {
-  document.getElementById('balanceValue').textContent = balance;
-}
-
-// Получить баланс при загрузке
-async function init() {
-  if (userId) {
-    balance = await getUserBalance(userId);
-    updateBalanceDisplay();
-  } else {
-    document.getElementById('balanceValue').textContent = 'N/A';
-  }
-}
-init();
-
-// Обновление баланса на GitHub
-async function updateBalanceOnServer(newBalance) {
-  const githubToken = 'ghp_abcdef1234567890abcdef1234567890abcdef';
-  const repo = 'SaweNap/dfjghdfifgJSON';
-  const path = 'users.json';
-
-  const apiUrl = `https://api.github.com/repos/${repo}/contents/${path}`;
-
-  // Получаем текущий sha файла
-  const response = await fetch(apiUrl, {
-    headers: {
-      'Authorization': `token ${githubToken}`,
-      'Accept': 'application/vnd.github.v3+json'
-    }
-  });
-  const data = await response.json();
-  const sha = data.sha;
-
-  // Обновляем содержимое файла
-  const updatedContent = JSON.stringify(
-    (await fetch(apiUrl, {
-      headers: {
-        'Authorization': `token ${githubToken}`,
-        'Accept': 'application/vnd.github.v3+json'
-      }
-    }).then(res => res.json())).content ? atob((await fetch(apiUrl, {headers: { 'Authorization': `token ${githubToken}` }}).then(res => res.json())).content) : ''
-  );
-
-  // Вариант: обновляем файл
-  const responseUpdate = await fetch(apiUrl, {
-    method: 'PUT',
-    headers: {
-      'Authorization': `token ${githubToken}`,
-      'Accept': 'application/vnd.github.v3+json'
-    },
-    body: JSON.stringify({
-      message: 'Обновление баланса пользователя',
-      content: btoa(JSON.stringify(users)),
-      sha: sha
-    })
-  });
-}
-
-// Функция для сохранения пользователей
 async function saveUsers(users) {
-  const githubToken = 'ghp_ВАШ_ТОКЕН'; // вставьте свой токен
-  const repo = 'SaweNap/dfjghdfifgJSON';
-  const path = 'users.json';
-  const apiUrl = `https://api.github.com/repos/${repo}/contents/${path}`;
-
+  const apiUrl = `https://api.github.com/repos/SaweNap/dfjghdfifgJSON/contents/users.json`;
   const response = await fetch(apiUrl, {
     headers: {
       'Authorization': `token ${githubToken}`,
@@ -128,7 +53,7 @@ async function saveUsers(users) {
   });
   const data = await response.json();
   const sha = data.sha;
-
+  const contentBase64 = btoa(JSON.stringify(users));
   await fetch(apiUrl, {
     method: 'PUT',
     headers: {
@@ -137,23 +62,48 @@ async function saveUsers(users) {
     },
     body: JSON.stringify({
       message: 'Обновление баланса пользователя',
-      content: btoa(JSON.stringify(users)),
+      content: contentBase64,
       sha: sha
     })
   });
 }
 
-// Обработчик кнопки "Играть"
-document.getElementById('spinBtn').onclick = async () => {
+async function getUserBalance(userId) {
+  try {
+    const users = await fetchUsers();
+    const user = users.find(u => u.id === userId);
+    return user ? user.balance : 0;
+  } catch (e) {
+    console.error('Ошибка получения баланса:', e);
+    return 0;
+  }
+}
+
+async function updateUserBalance(userId, newBalance) {
+  const users = await fetchUsers();
+  const userIndex = users.findIndex(u => u.id === userId);
+  if (userIndex !== -1) {
+    users[userIndex].balance = newBalance;
+    await saveUsers(users);
+  }
+}
+
+async function updateBalanceDisplay() {
   if (!userId) {
     alert('Пользователь не определен');
     return;
   }
+  const balance = await getUserBalance(userId);
+  balanceSpan.textContent = balance.toFixed(2);
+  window.currentBalance = balance; // чтобы использовать в игровом процессе
+}
 
-  // Обновляем баланс
-  balance = await getUserBalance(userId);
-  updateBalanceDisplay();
-
+async function processGame() {
+  if (!userId) {
+    alert('Пользователь не определен');
+    return;
+  }
+  let balance = await getUserBalance(userId);
   const stake = parseInt(document.getElementById('stakeInput').value);
   if (isNaN(stake) || stake < 10) {
     alert('Минимальная ставка 10 ₽');
@@ -163,54 +113,51 @@ document.getElementById('spinBtn').onclick = async () => {
     alert('Недостаточно средств');
     return;
   }
-
   // Снимаем ставку
   balance -= stake;
-  updateBalanceDisplay();
+  await updateUserBalance(userId, balance);
+  await updateBalanceDisplay();
 
   // Крутятся барабаны
   const reel1 = symbols[Math.floor(Math.random() * symbols.length)];
   const reel2 = symbols[Math.floor(Math.random() * symbols.length)];
   const reel3 = symbols[Math.floor(Math.random() * symbols.length)];
-  document.getElementById('reel1').textContent = reel1;
-  document.getElementById('reel2').textContent = reel2;
-  document.getElementById('reel3').textContent = reel3;
+  reel1Span.textContent = reel1;
+  reel2Span.textContent = reel2;
+  reel3Span.textContent = reel3;
 
   // Определяем выигрыш
   let payoutMultiplier = 0;
-  if (Math.random() < 0.02) { // джекпот
-    payoutMultiplier = 10;
+  if (Math.random() < 0.02) {
+    payoutMultiplier = 10; // джекпот
     resultDiv.textContent = `🎉 Джекпот! Вы выиграли ${stake * payoutMultiplier} ₽!`;
-  } else if (Math.random() < 0.1) { // бонус
-    payoutMultiplier = 3;
+  } else if (Math.random() < 0.1) {
+    payoutMultiplier = 3; // бонус
     resultDiv.textContent = `🎁 Бонус! Вы выиграли ${stake * payoutMultiplier} ₽!`;
   } else if (reel1 === reel2 && reel2 === reel3) {
-    payoutMultiplier = 5;
+    payoutMultiplier = 5; // три в ряд
     resultDiv.textContent = `Поздравляем! Вы выиграли ${stake * payoutMultiplier} ₽!`;
   } else if (reel1 === reel2 || reel2 === reel3 || reel1 === reel3) {
-    payoutMultiplier = 2;
+    payoutMultiplier = 2; // две одинаковые
     resultDiv.textContent = `Неплохо! Вы выиграли ${stake * payoutMultiplier} ₽!`;
   } else {
     resultDiv.textContent = 'Повезет в следующий раз!';
   }
 
-  // Если есть выигрыш, добавляем и сохраняем
+  // Если есть выигрыш — добавляем и сохраняем
   if (payoutMultiplier > 0) {
     balance += stake * payoutMultiplier;
-    updateBalanceDisplay();
-
-    // Обновляем баланс на сервере
-    // Загружаем текущий список пользователей
-    const responseUsers = await fetch(`https://raw.githubusercontent.com/SaweNap/dfjghdfifgJSON/main/users.json`);
-    const users = await responseUsers.json();
-
-    const userIndex = users.findIndex(u => u.id.toString() === userId);
-    if (userIndex !== -1) {
-      users[userIndex].balance = balance;
-      await saveUsers(users);
-    }
+    await updateUserBalance(userId, balance);
+    await updateBalanceDisplay();
   }
-};
+}
+
+// Обработчик кнопки
+document.getElementById('spinBtn').onclick = processGame;
+
+// Инициализация баланса при загрузке
+updateBalanceDisplay();
 </script>
+
 </body>
 </html>
